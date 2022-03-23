@@ -1,5 +1,10 @@
 package br.edu.ifsp.todolistarq.view
 
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -20,13 +25,20 @@ import br.edu.ifsp.todolistarq.view.adapter.OnTarefaClickListener
 import br.edu.ifsp.todolistarq.view.adapter.TarefasAdapter
 import br.edu.ifsp.todolistarq.viewmodel.TarefaViewModel
 
-class ListaTarefasFragment: BaseFragment(), OnTarefaClickListener {
+@SuppressLint("NotifyDataSetChanged")
+class ListaTarefasFragment : BaseFragment(), OnTarefaClickListener {
     private lateinit var fragmentListaTarefasBinding: FragmentListaTarefasBinding
     private lateinit var tarefasList: MutableList<Tarefa>
     private lateinit var tarefasAdapter: TarefasAdapter
+
     //private lateinit var listaTarefasController: ListaTarefasController
     //private lateinit var listaTarefasController: TarefaPresenter
     private lateinit var tarefaViewModel: TarefaViewModel
+
+    companion object {
+        const val ACTION_SEARCH = "ACTION_SEARCH"
+        const val EXTRA_SEARCH = "SEARCH"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +47,7 @@ class ListaTarefasFragment: BaseFragment(), OnTarefaClickListener {
         tarefaViewModel = ViewModelProvider.AndroidViewModelFactory(requireActivity().application)
             .create(TarefaViewModel::class.java)
 
-        tarefaViewModel.recuperarListaTarefas().observe(this){ listaTarefas ->
+        tarefaViewModel.recuperarListaTarefas().observe(this) { listaTarefas ->
             atualizarListaTarefas(listaTarefas)
         }
 
@@ -62,9 +74,10 @@ class ListaTarefasFragment: BaseFragment(), OnTarefaClickListener {
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
-        fragmentListaTarefasBinding = FragmentListaTarefasBinding.inflate(inflater, container, false)
+        fragmentListaTarefasBinding =
+            FragmentListaTarefasBinding.inflate(inflater, container, false)
         // Buscar tarefas no banco de dados
 
         tarefasList = mutableListOf()
@@ -120,7 +133,30 @@ class ListaTarefasFragment: BaseFragment(), OnTarefaClickListener {
             replace(R.id.principalFcv, tarefaFragment)
         }
     }
-    override fun atualizarListaTarefas(listaTarefas: MutableList<Tarefa>){
+
+    private val receiveSearchTarefas: BroadcastReceiver by lazy {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val bundle = intent?.extras
+                val lista = bundle?.getParcelableArray(EXTRA_SEARCH)
+                val listaTarefas: MutableList<Tarefa> = mutableListOf()
+                lista?.forEach { item ->
+                    listaTarefas.add(item as Tarefa)
+                }
+
+                atualizarListaTarefas(listaTarefas)
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        requireActivity().registerReceiver(receiveSearchTarefas,
+            IntentFilter(ACTION_SEARCH)
+        )
+    }
+
+    override fun atualizarListaTarefas(listaTarefas: MutableList<Tarefa>) {
         tarefasList.clear()
         tarefasList.addAll(listaTarefas)
         tarefasAdapter.notifyDataSetChanged()
