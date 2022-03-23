@@ -6,6 +6,7 @@ Projeto da disciplina de "Programação de Dispositivos Android 2 (PA2)" do Curs
 
 Projeto de Arquitetura para Dispositivos Móveis.
 
+
 ### Padrões Abordados:
 
 - MVC (Model-View-Controller)
